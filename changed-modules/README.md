@@ -7,6 +7,7 @@ _The `changed-modules` action, leverages `hpcc-systems/skip-duplicate-actions` a
 * workflows
 * platform
 * dockerfiles
+* helm
 * ecllibrary
 * eclwatch
 * docs

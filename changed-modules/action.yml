@@ -1,43 +1,82 @@
 name: "Changed Modules"
 description: "Check which parts of HPCC-Platform have been modified"
+inputs:
+  github_token:
+    description: "Your GitHub Access Token"
+    required: true
+    default: ${{ github.token }}
+  paths_ignore:
+    description: "A JSON-array with ignored path patterns"
+    required: false
+    default: "[]"
+  paths:
+    description: "A JSON-array with path patterns"
+    required: false
+    default: "[]"
+  cancel_others:
+    description: "If true, then workflow-runs from outdated commits will be cancelled"
+    required: false
+    default: "false"
+  skip_after_successful_duplicate:
+    description: "If true, skip if an already finished duplicate run can be found"
+    required: false
+    default: "true"
+  do_not_skip:
+    description: "A JSON-array with triggers that should never be skipped"
+    required: false
+    default: '["workflow_dispatch", "schedule"]'
+  concurrent_skipping:
+    description: "One of never, same_content, same_content_newer, outdated_runs, always"
+    required: true
+    default: "never"
 outputs:
   workflows:
-    value: ${{ !fromJSON(steps.skip_checked.outputs.paths_result).workflows.should_skip || '' }}
+    value: ${{ steps.skip_checked.outputs.should_skip != 'true' && !fromJSON(steps.skip_checked.outputs.paths_result).workflows.should_skip || '' }}
     description: "Github Workflows"
   platform:
-    value: ${{ !fromJSON(steps.skip_checked.outputs.paths_result).platform.should_skip || '' }}
+    value: ${{ steps.skip_checked.outputs.should_skip != 'true' && !fromJSON(steps.skip_checked.outputs.paths_result).platform.should_skip || '' }}
     description: "HPCC-Platform"
   dockerfiles:
-    value: ${{ !fromJSON(steps.skip_checked.outputs.paths_result).dockerfiles.should_skip || '' }}
+    value: ${{ steps.skip_checked.outputs.should_skip != 'true' && !fromJSON(steps.skip_checked.outputs.paths_result).dockerfiles.should_skip || '' }}
     description: "Dockerfiles"
+  helm:
+    value: ${{ steps.skip_checked.outputs.should_skip != 'true' && !fromJSON(steps.skip_checked.outputs.paths_result).helm.should_skip || '' }}
+    description: "helm"
   ecllibrary:
-    value: ${{ !fromJSON(steps.skip_checked.outputs.paths_result).ecllibrary.should_skip || '' }}
+    value: ${{ steps.skip_checked.outputs.should_skip != 'true' && !fromJSON(steps.skip_checked.outputs.paths_result).ecllibrary.should_skip || '' }}
     description: "ECL Library"
   eclwatch:
-    value: ${{ !fromJSON(steps.skip_checked.outputs.paths_result).eclwatch.should_skip || '' }}
+    value: ${{ steps.skip_checked.outputs.should_skip != 'true' && !fromJSON(steps.skip_checked.outputs.paths_result).eclwatch.should_skip || '' }}
     description: "ECL Watch"
   docs:
-    value: ${{ !fromJSON(steps.skip_checked.outputs.paths_result).docs.should_skip || '' }}
+    value: ${{ steps.skip_checked.outputs.should_skip != 'true' && !fromJSON(steps.skip_checked.outputs.paths_result).docs.should_skip || '' }}
     description: "Documentation"
   testing:
-    value: ${{ !fromJSON(steps.skip_checked.outputs.paths_result).testing.should_skip || '' }}
+    value: ${{ steps.skip_checked.outputs.should_skip != 'true' && !fromJSON(steps.skip_checked.outputs.paths_result).testing.should_skip || '' }}
     description: "Testing"
   initfiles:
-    value: ${{ !fromJSON(steps.skip_checked.outputs.paths_result).initfiles.should_skip || '' }}
+    value: ${{ steps.skip_checked.outputs.should_skip != 'true' && !fromJSON(steps.skip_checked.outputs.paths_result).initfiles.should_skip || '' }}
     description: "Init Files"
   other:
-    value: ${{ !fromJSON(steps.skip_checked.outputs.paths_result).other.should_skip || '' }}
+    value: ${{ steps.skip_checked.outputs.should_skip != 'true' && !fromJSON(steps.skip_checked.outputs.paths_result).other.should_skip || '' }}
     description: "Other"
 
 runs:
   using: "composite"
   steps:
-    - id: skip_checked
-      name: Skip Duplicate Action
-      uses: GordonSmith/github-actions/skip-duplicate-actions@main
+    - name: "Skip Duplicate Action"
+      id: skip_checked
+      # See ticket:  https://support.github.com/ticket/personal/0/1563862
+      # uses: ./skip-duplicate-actions
+      uses: hpcc-systems/skip-duplicate-actions@master
       with:
-        github_token: ${{ github.token }}
-        cancel_others: true
+        github_token: ${{ inputs.github_token }}
+        paths_ignore: ${{ inputs.paths_ignore }}
+        paths: ${{ inputs.paths }}
+        cancel_others: ${{ inputs.cancel_others }}
+        skip_after_successful_duplicate: ${{ inputs.skip_after_successful_duplicate }}
+        do_not_skip: ${{ inputs.do_not_skip }}
+        concurrent_skipping: ${{ inputs.concurrent_skipping }}
         paths_filter: |
           workflows:
             paths:
@@ -67,12 +106,16 @@ runs:
           dockerfiles:
             paths:
               - "dockerfiles/**"
+          helm:
+            paths:
               - "helm/**"
+              - "testing/helm/**"
           ecllibrary:
             paths:
               - "ecllibrary/**"
           eclwatch:
             paths:
+              - "esp/eclwatch/**"
               - "esp/src/**"
           docs:
             paths:
@@ -94,12 +137,26 @@ runs:
     - name: Changed Summary
       shell: "bash"
       run: |
-        echo "workflows:  ${{ fromJSON(steps.skip_checked.outputs.paths_result).workflows.should_skip == false }}"
-        echo "platform:  ${{ fromJSON(steps.skip_checked.outputs.paths_result).platform.should_skip == false }}"
-        echo "dockerfiles:  ${{ fromJSON(steps.skip_checked.outputs.paths_result).dockerfiles.should_skip == false }}"
-        echo "ecllibrary:  ${{ fromJSON(steps.skip_checked.outputs.paths_result).ecllibrary.should_skip == false }}"
-        echo "eclwatch:  ${{ fromJSON(steps.skip_checked.outputs.paths_result).eclwatch.should_skip == false }}"
-        echo "docs:  ${{ fromJSON(steps.skip_checked.outputs.paths_result).docs.should_skip == false }}"
-        echo "testing:  ${{ fromJSON(steps.skip_checked.outputs.paths_result).testing.should_skip == false }}"
-        echo "initfiles:  ${{ fromJSON(steps.skip_checked.outputs.paths_result).initfiles.should_skip == false }}"
-        echo "other:  ${{ fromJSON(steps.skip_checked.outputs.paths_result).other.should_skip == false }}"
+        echo "---  The following are the "changed" values  ---"
+        echo "workflows:  ${{ steps.skip_checked.outputs.should_skip != 'true' && !fromJSON(steps.skip_checked.outputs.paths_result).workflows.should_skip || '' }}"
+        echo "platform:  ${{ steps.skip_checked.outputs.should_skip != 'true' && !fromJSON(steps.skip_checked.outputs.paths_result).platform.should_skip || '' }}"
+        echo "dockerfiles:  ${{ steps.skip_checked.outputs.should_skip != 'true' && !fromJSON(steps.skip_checked.outputs.paths_result).dockerfiles.should_skip || '' }}"
+        echo "helm:  ${{ steps.skip_checked.outputs.should_skip != 'true' && !fromJSON(steps.skip_checked.outputs.paths_result).helm.should_skip || '' }}"
+        echo "ecllibrary:  ${{ steps.skip_checked.outputs.should_skip != 'true' && !fromJSON(steps.skip_checked.outputs.paths_result).ecllibrary.should_skip || '' }}"
+        echo "eclwatch:  ${{ steps.skip_checked.outputs.should_skip != 'true' && !fromJSON(steps.skip_checked.outputs.paths_result).eclwatch.should_skip || '' }}"
+        echo "docs:  ${{ steps.skip_checked.outputs.should_skip != 'true' && !fromJSON(steps.skip_checked.outputs.paths_result).docs.should_skip || '' }}"
+        echo "testing:  ${{ steps.skip_checked.outputs.should_skip != 'true' && !fromJSON(steps.skip_checked.outputs.paths_result).testing.should_skip || '' }}"
+        echo "initfiles:  ${{ steps.skip_checked.outputs.should_skip != 'true' && !fromJSON(steps.skip_checked.outputs.paths_result).initfiles.should_skip || '' }}"
+        echo "other:  ${{ steps.skip_checked.outputs.should_skip != 'true' && !fromJSON(steps.skip_checked.outputs.paths_result).other.should_skip || '' }}"
+        echo "---  The following are the "should_skip" values (debugging)  ---"
+        echo "global:  ${{ steps.skip_checked.outputs.should_skip }}"
+        echo "workflows:  ${{ fromJSON(steps.skip_checked.outputs.paths_result).workflows.should_skip }}"
+        echo "platform:  ${{ fromJSON(steps.skip_checked.outputs.paths_result).platform.should_skip }}"
+        echo "dockerfiles:  ${{ fromJSON(steps.skip_checked.outputs.paths_result).dockerfiles.should_skip }}"
+        echo "helm:  ${{ fromJSON(steps.skip_checked.outputs.paths_result).helm.should_skip }}"
+        echo "ecllibrary:  ${{ fromJSON(steps.skip_checked.outputs.paths_result).ecllibrary.should_skip }}"
+        echo "eclwatch:  ${{ fromJSON(steps.skip_checked.outputs.paths_result).eclwatch.should_skip }}"
+        echo "docs:  ${{ fromJSON(steps.skip_checked.outputs.paths_result).docs.should_skip }}"
+        echo "testing:  ${{ fromJSON(steps.skip_checked.outputs.paths_result).testing.should_skip }}"
+        echo "initfiles:  ${{ fromJSON(steps.skip_checked.outputs.paths_result).initfiles.should_skip }}"
+        echo "other:  ${{ fromJSON(steps.skip_checked.outputs.paths_result).other.should_skip }}"
