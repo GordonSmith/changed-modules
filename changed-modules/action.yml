@@ -57,6 +57,9 @@ outputs:
   initfiles:
     value: ${{ steps.skip_checked.outputs.should_skip != 'true' && !fromJSON(steps.skip_checked.outputs.paths_result).initfiles.should_skip || '' }}
     description: "Init Files"
+  vcpkg:
+    value: ${{ steps.skip_checked.outputs.should_skip != 'true' && !fromJSON(steps.skip_checked.outputs.paths_result).vcpkg.should_skip || '' }}
+    description: "vcpkg"
   other:
     value: ${{ steps.skip_checked.outputs.should_skip != 'true' && !fromJSON(steps.skip_checked.outputs.paths_result).other.should_skip || '' }}
     description: "Other"
@@ -103,6 +106,7 @@ runs:
               - "thorlcr/**"
               - "tools/**"
               - "vcpkg/**"
+              - "vcpkg-overlays/**"
           dockerfiles:
             paths:
               - "dockerfiles/**"
@@ -126,6 +130,10 @@ runs:
           initfiles:
             paths:
               - "initfiles/**"
+          vcpkg:
+            paths:
+              - "vcpkg/**"
+              - "vcpkg-overlays/**"
           other:
             paths:
               - "charm/**"
