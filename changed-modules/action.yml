@@ -36,6 +36,9 @@ outputs:
   platform:
     value: ${{ steps.skip_checked.outputs.should_skip != 'true' && !fromJSON(steps.skip_checked.outputs.paths_result).platform.should_skip || '' }}
     description: "HPCC-Platform"
+  plugins:
+    value: ${{ steps.skip_checked.outputs.should_skip != 'true' && !fromJSON(steps.skip_checked.outputs.paths_result).plugins.should_skip || '' }}
+    description: "Plugins"
   dockerfiles:
     value: ${{ steps.skip_checked.outputs.should_skip != 'true' && !fromJSON(steps.skip_checked.outputs.paths_result).dockerfiles.should_skip || '' }}
     description: "Dockerfiles"
@@ -105,6 +108,9 @@ runs:
               - "tools/**"
               - "vcpkg/**"
               - "vcpkg-overlays/**"
+          plugins:
+            paths:
+              - "plugins/**"
           dockerfiles:
             paths:
               - "dockerfiles/**"
@@ -146,6 +152,7 @@ runs:
         echo "---  The following are the "changed" values  ---"
         echo "workflows:  ${{ steps.skip_checked.outputs.should_skip != 'true' && !fromJSON(steps.skip_checked.outputs.paths_result).workflows.should_skip || '' }}"
         echo "platform:  ${{ steps.skip_checked.outputs.should_skip != 'true' && !fromJSON(steps.skip_checked.outputs.paths_result).platform.should_skip || '' }}"
+        echo "plugins:  ${{ steps.skip_checked.outputs.should_skip != 'true' && !fromJSON(steps.skip_checked.outputs.paths_result).plugins.should_skip || '' }}"
         echo "dockerfiles:  ${{ steps.skip_checked.outputs.should_skip != 'true' && !fromJSON(steps.skip_checked.outputs.paths_result).dockerfiles.should_skip || '' }}"
         echo "helm:  ${{ steps.skip_checked.outputs.should_skip != 'true' && !fromJSON(steps.skip_checked.outputs.paths_result).helm.should_skip || '' }}"
         echo "ecllibrary:  ${{ steps.skip_checked.outputs.should_skip != 'true' && !fromJSON(steps.skip_checked.outputs.paths_result).ecllibrary.should_skip || '' }}"
@@ -158,7 +165,8 @@ runs:
         echo "global:  ${{ steps.skip_checked.outputs.should_skip }}"
         echo "workflows:  ${{ fromJSON(steps.skip_checked.outputs.paths_result).workflows.should_skip }}"
         echo "platform:  ${{ fromJSON(steps.skip_checked.outputs.paths_result).platform.should_skip }}"
-        echo "dockerfiles:  ${{ fromJSON(steps.skip_checked.outputs.paths_result).dockerfiles.should_skip }}"
+        echo "plugins:  ${{ fromJSON(steps.skip_checked.outputs.paths_result).platform.should_skip }}"
+        echo "dockerfiles:  ${{ fromJSON(steps.skip_checked.outputs.paths_result).plugins.should_skip }}"
         echo "helm:  ${{ fromJSON(steps.skip_checked.outputs.paths_result).helm.should_skip }}"
         echo "ecllibrary:  ${{ fromJSON(steps.skip_checked.outputs.paths_result).ecllibrary.should_skip }}"
         echo "eclwatch:  ${{ fromJSON(steps.skip_checked.outputs.paths_result).eclwatch.should_skip }}"
