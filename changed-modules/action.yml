@@ -72,7 +72,7 @@ runs:
   steps:
     - name: "Skip Duplicate Action"
       id: skip_checked
-      uses: fkirc/skip-duplicate-actions@v5.3.0
+      uses: fkirc/skip-duplicate-actions@v5.3.1
       with:
         github_token: ${{ inputs.github_token }}
         paths_ignore: ${{ inputs.paths_ignore }}
